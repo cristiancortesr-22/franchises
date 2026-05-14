@@ -6,14 +6,18 @@ import co.com.franchise.api.franchise.dto.FranchiseRequest;
 import co.com.franchise.api.franchise.dto.FranchiseResponse;
 import co.com.franchise.api.product.dto.ProductRequest;
 import co.com.franchise.api.product.dto.ProductResponse;
+import co.com.franchise.api.product.dto.ProductViewResponse;
 import co.com.franchise.model.branch.Branch;
 import co.com.franchise.model.branch.BranchParam;
 import co.com.franchise.model.franchise.Franchise;
 import co.com.franchise.model.franchise.FranchiseParam;
 import co.com.franchise.model.product.Product;
 import co.com.franchise.model.product.ProductParam;
+import co.com.franchise.model.product.ProductView;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
+
+import java.util.List;
 
 @Mapper
 public interface HandlerMapper {
@@ -25,4 +29,5 @@ public interface HandlerMapper {
     BranchResponse toBranchResponse(Branch branch);
     ProductParam toProductParam(ProductRequest productRequest);
     ProductResponse toProductResponse(Product product);
+    List<ProductViewResponse> toProductViewResponse(List<ProductView> productViews);
 }

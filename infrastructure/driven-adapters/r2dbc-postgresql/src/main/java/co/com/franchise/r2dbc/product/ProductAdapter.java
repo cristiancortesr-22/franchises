@@ -5,6 +5,7 @@ import co.com.franchise.model.exceptions.BusinessException;
 import co.com.franchise.model.exceptions.InfrastructureException;
 import co.com.franchise.model.product.Product;
 import co.com.franchise.model.product.ProductParam;
+import co.com.franchise.model.product.ProductView;
 import co.com.franchise.model.product.gateways.ProductRepository;
 import co.com.franchise.r2dbc.mapper.ProductMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -15,6 +16,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Map;
 
 import static net.logstash.logback.argument.StructuredArguments.kv;
 
@@ -39,6 +43,59 @@ public class ProductAdapter implements ProductRepository {
                 .onErrorMap(TransientDataAccessException.class, error ->
                         new InfrastructureException(error, ErrorMessage.PRODUCT_CREATION_FAILED))
                 .doOnError(throwable -> log.error("Save product error", throwable));
+    }
+
+    @Override
+    public Mono<Boolean> delete(Long id) {
+        return myProductRepository.updateStatus(STATUS_DELETE, id)
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Delete product request",
+                        kv("deleteProductRequest", Map.of("id", id))))
+                .doOnSuccess(aBoolean -> log.info("Deleted product response",
+                        kv("deletedProductResponse", aBoolean)))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.PRODUCT_DELETE_FAILED))
+                .doOnError(throwable -> log.error("Delete product error", throwable));
+    }
+
+    @Override
+    public Mono<Product> getById(Long id) {
+        return myProductRepository.findByIdAndStatus(id, STATUS_ACTIVE)
+                .map(ProductMapper.INSTANCE::toProduct)
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Get product request",
+                        kv("getProductRequest", Map.of("id", id))))
+                .doOnSuccess(product -> log.info("Get product response", kv("getProductResponse", product)))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.PRODUCT_GET_FAILED))
+                .doOnError(throwable -> log.error("Get product error", throwable));
+    }
+
+    @Override
+    public Mono<Boolean> updateStock(Long id, int stock) {
+        return myProductRepository.updateStock(stock, id)
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Update Stock product request",
+                        kv("updateStockProductRequest", Map.of("id", id, "stock", stock))))
+                .doOnSuccess(updated -> log.info("Updated Stock product response",
+                        kv("updatedStockProductResponse", updated)))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.PRODUCT_UPDATE_STOCK_FAILED))
+                .doOnError(throwable -> log.error("Update Stock product error", throwable));
+    }
+
+    @Override
+    public Mono<List<ProductView>> getTopProductsByFranchise(Long franchiseId) {
+        return myProductRepository.findTopStockProductsByFranchise(franchiseId, STATUS_ACTIVE)
+                .map(ProductMapper.INSTANCE::toProductView)
+                .collectList()
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Get top products request",
+                        kv("getTopProductsRequest", Map.of("franchiseId", franchiseId))))
+                .doOnSuccess(product -> log.info("Get top products response", kv("getTopProductsResponse", product)))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.PRODUCT_GET_TOP_FAILED))
+                .doOnError(throwable -> log.error("Get top products error", throwable));
     }
 
     private Mono<Product> recoverDeletedRecord(ProductParam productParam) {

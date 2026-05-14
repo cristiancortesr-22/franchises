@@ -17,8 +17,13 @@ public enum ErrorMessage {
     BRANCH_DOES_NOT_EXIST("BR-03", "La sucursal no existe."),
     BRANCH_GET_FAILED("BR-04", "Error al consultar la sucursal."),
 
+    PRODUCT_DOES_NOT_EXIST("PR-01", "El producto no existe."),
     PRODUCT_ALREADY_EXISTS("PR-02", "El producto ya existe para esta sucursal."),
     PRODUCT_CREATION_FAILED("PR-03", "Error al crear el producto."),
+    PRODUCT_UPDATE_STOCK_FAILED("PR-04", "Error al actualizar el stock del producto."),
+    PRODUCT_DELETE_FAILED("PR-05", "Error al eliminar el producto."),
+    PRODUCT_GET_TOP_FAILED("PR-06", "Error al buscar top de producto."),
+    PRODUCT_GET_FAILED("PR-07", "Error al buscar el producto."),
     PRODUCT_UPDATE_STOCK_AND_STATUS_FAILED("PR-08", "Error al actualizar el stock y el estado del producto."),
 
     INVALID_INPUT("VAL-01", "Los datos de entrada no son válidos."),

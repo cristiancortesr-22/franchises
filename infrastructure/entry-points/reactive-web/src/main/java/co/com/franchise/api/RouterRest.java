@@ -8,7 +8,10 @@ import co.com.franchise.api.franchise.FranchiseHandler;
 import co.com.franchise.api.franchise.dto.FranchiseRequest;
 import co.com.franchise.api.product.ProductHandler;
 import co.com.franchise.api.product.dto.ProductRequest;
+import co.com.franchise.api.product.dto.ProductUpdateStockRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -21,7 +24,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import static org.springframework.web.reactive.function.server.RequestPredicates.DELETE;
+import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
+import static org.springframework.web.reactive.function.server.RequestPredicates.PUT;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
 @Configuration
@@ -52,12 +58,40 @@ public class RouterRest {
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Product created", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
                                     @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
+                            })),
+            @RouterOperation(path = "/product/{id}", method = RequestMethod.DELETE,
+                    beanClass = ProductHandler.class, beanMethod = "delete",
+                    operation = @Operation(operationId = "deleteProduct", summary = "Delete a product from a branch", tags = {"Product"},
+                            parameters = {@Parameter(in = ParameterIn.PATH, name = "id", schema = @Schema(type = "integer"))},
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Product deleted", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Product not found", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
+                            })),
+            @RouterOperation(path = "/product/{id}/stock", method = RequestMethod.PUT,
+                    beanClass = ProductHandler.class, beanMethod = "updateStock",
+                    operation = @Operation(operationId = "updateProductStock", summary = "Update product stock", tags = {"Product"},
+                            parameters = {@Parameter(in = ParameterIn.PATH, name = "id", schema = @Schema(type = "integer"))},
+                            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = ProductUpdateStockRequest.class))),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Stock updated", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Product not found", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
+                            })),
+            @RouterOperation(path = "/product/{franchiseId}/top", method = RequestMethod.GET,
+                    beanClass = ProductHandler.class, beanMethod = "getTopProducts",
+                    operation = @Operation(operationId = "getTopProducts", summary = "Get top stock product per branch within a franchise", tags = {"Product"},
+                            parameters = {@Parameter(in = ParameterIn.PATH, name = "franchiseId", schema = @Schema(type = "integer"))},
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Top products retrieved", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Franchise not found", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
                             }))
     })
     public RouterFunction<ServerResponse> routerFunction(FranchiseHandler franchiseHandler, BranchHandler branchHandler,
                                                          ProductHandler productHandler) {
         return route(POST("/franchise"), franchiseHandler::create)
                 .andRoute(POST("/branch"), branchHandler::create)
-                .andRoute(POST("/product"), productHandler::create);
+                .andRoute(POST("/product"), productHandler::create)
+                .andRoute(DELETE("/product/{id}"), productHandler::delete)
+                .andRoute(PUT("/product/{id}/stock"), productHandler::updateStock)
+                .andRoute(GET("/product/{franchiseId}/top"), productHandler::getTopProducts);
     }
 }
