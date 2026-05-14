@@ -1,0 +1,39 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: "franchises"
+  devtools:
+    add-properties: false
+  webflux:
+    base-path: api/v1
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+infrastructure:
+  db:
+    postgres:
+      host: "${DB_HOST:}"
+      port: "${DB_PORT:}"
+      database: "${DB_DATABASE:}"
+      username: "${DB_USERNAME:}"
+      password: "${DB_PASSWORD:}"
+      driver: "${DB_DRIVER:}"
+      pool:
+        initial-size: "${DB_POOL_INITIAL_SIZE:5}"
+        max-size: "${DB_POOL_MAX_SIZE:10}"
+        max-idle-time: "${DB_POOL_MAX_IDLE_TIME:30}"
