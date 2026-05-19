@@ -85,6 +85,21 @@ public class ProductAdapter implements ProductRepository {
     }
 
     @Override
+    public Mono<Boolean> updateName(Long id, String name) {
+        return myProductRepository.updateName(name, id)
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Update Name product request",
+                        kv("updateNameProductRequest", Map.of("id", id, "name", name))))
+                .doOnSuccess(updated -> log.info("Updated Name product response",
+                        kv("updatedNameProductResponse", updated)))
+                .onErrorResume(DuplicateKeyException.class, error ->
+                        Mono.error(new BusinessException(ErrorMessage.PRODUCT_ALREADY_EXISTS_WITH_THIS_NAME)))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.PRODUCT_UPDATE_NAME_FAILED))
+                .doOnError(throwable -> log.error("Update Name product error", throwable));
+    }
+
+    @Override
     public Mono<List<ProductView>> getTopProductsByFranchise(Long franchiseId) {
         return myProductRepository.findTopStockProductsByFranchise(franchiseId, STATUS_ACTIVE)
                 .map(ProductMapper.INSTANCE::toProductView)

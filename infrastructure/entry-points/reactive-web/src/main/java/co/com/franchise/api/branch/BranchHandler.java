@@ -1,9 +1,11 @@
 package co.com.franchise.api.branch;
 
 import co.com.franchise.api.branch.dto.BranchRequest;
+import co.com.franchise.api.branch.dto.BranchUpdateRequest;
 import co.com.franchise.api.mapper.HandlerMapper;
 import co.com.franchise.api.BaseHandler;
 import co.com.franchise.api.validator.BranchValidate;
+import co.com.franchise.api.validator.UtilValidate;
 import co.com.franchise.model.enums.ErrorMessage;
 import co.com.franchise.model.exceptions.AppException;
 import co.com.franchise.usecase.branch.BranchUseCase;
@@ -45,5 +47,20 @@ public class BranchHandler extends BaseHandler {
                                         ErrorMessage.INTERNAL_ERROR));
                     }
                 });
+    }
+
+    public Mono<ServerResponse> update(ServerRequest serverRequest) {
+        Long branchId = Long.valueOf(serverRequest.pathVariable("id"));
+
+        return serverRequest.bodyToMono(BranchUpdateRequest.class)
+                .flatMap(branchUpdateRequest ->
+                        UtilValidate.validateBranchUpdateRequest(branchUpdateRequest, branchId)
+                                .flatMap(errors -> buildErrorResponse(HttpStatus.BAD_REQUEST, ErrorMessage.INVALID_INPUT))
+                                .switchIfEmpty(Mono.defer(() -> branchUseCase.updateName(branchId, branchUpdateRequest.getName())
+                                        .flatMap(branch -> buildSuccessResponse(HttpStatus.OK, HandlerMapper.MAPPER.toBranchResponse(branch)))
+                                        .onErrorResume(AppException.class, error ->
+                                                buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
+                                        .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                                                ErrorMessage.INTERNAL_ERROR)))));
     }
 }

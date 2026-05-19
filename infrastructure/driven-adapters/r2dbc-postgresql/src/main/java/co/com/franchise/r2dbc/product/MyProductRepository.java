@@ -19,6 +19,10 @@ public interface MyProductRepository extends ReactiveCrudRepository<ProductEntit
     Mono<Boolean> updateStock(int stock, Long id);
 
     @Modifying
+    @Query("UPDATE public.product SET name= :name WHERE id= :id")
+    Mono<Boolean> updateName(String name, Long id);
+
+    @Modifying
     @Query("UPDATE public.product SET stock= :stock, status= :status WHERE id= :id")
     Mono<Boolean> updateStockAndStatus(int stock, String status, Long id);
 

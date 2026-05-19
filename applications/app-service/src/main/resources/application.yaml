@@ -27,12 +27,12 @@ springdoc:
 infrastructure:
   db:
     postgres:
-      host: "${DB_HOST:}"
-      port: "${DB_PORT:}"
-      database: "${DB_DATABASE:}"
-      username: "${DB_USERNAME:}"
-      password: "${DB_PASSWORD:}"
-      driver: "${DB_DRIVER:}"
+      host: "${DB_HOST:localhost}"
+      port: "${DB_PORT:5432}"
+      database: "${DB_DATABASE:technical_test}"
+      username: "${DB_USERNAME:postgres}"
+      password: "${DB_PASSWORD:1234}"
+      driver: "${DB_DRIVER:postgresql}"
       pool:
         initial-size: "${DB_POOL_INITIAL_SIZE:5}"
         max-size: "${DB_POOL_MAX_SIZE:10}"

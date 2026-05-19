@@ -1,5 +1,7 @@
 package co.com.franchise.usecase.franchise;
 
+import co.com.franchise.model.enums.ErrorMessage;
+import co.com.franchise.model.exceptions.BusinessException;
 import co.com.franchise.model.franchise.Franchise;
 import co.com.franchise.model.franchise.FranchiseParam;
 import co.com.franchise.model.franchise.gateways.FranchiseRepository;
@@ -16,5 +18,12 @@ public class FranchiseUseCase {
 
     public Mono<Franchise> getById(Long id) {
         return franchiseRepository.findById(id);
+    }
+
+    public Mono<Franchise> updateName(FranchiseParam franchiseParam, Long id) {
+        return getById(id)
+                .flatMap(franchise -> franchiseRepository.update(franchise.toBuilder()
+                        .name(franchiseParam.getName()).build()))
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessage.FRANCHISE_DOES_NOT_EXIST)));
     }
 }

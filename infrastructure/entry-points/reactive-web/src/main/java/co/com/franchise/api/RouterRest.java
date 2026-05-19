@@ -2,12 +2,14 @@ package co.com.franchise.api;
 
 import co.com.franchise.api.branch.BranchHandler;
 import co.com.franchise.api.branch.dto.BranchRequest;
+import co.com.franchise.api.branch.dto.BranchUpdateRequest;
 import co.com.franchise.api.dto.error.APIErrorResponse;
 import co.com.franchise.api.dto.success.APISuccessResponse;
 import co.com.franchise.api.franchise.FranchiseHandler;
 import co.com.franchise.api.franchise.dto.FranchiseRequest;
 import co.com.franchise.api.product.ProductHandler;
 import co.com.franchise.api.product.dto.ProductRequest;
+import co.com.franchise.api.product.dto.ProductUpdateNameRequest;
 import co.com.franchise.api.product.dto.ProductUpdateStockRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,6 +45,15 @@ public class RouterRest {
                                     @ApiResponse(responseCode = "200", description = "Franchise created", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
                                     @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
                             })),
+            @RouterOperation(path = "/franchise/{id}", method = RequestMethod.PUT,
+                    beanClass = FranchiseHandler.class, beanMethod = "update",
+                    operation = @Operation(operationId = "updateFranchiseName", summary = "Update franchise name", tags = {"Franchise"},
+                            parameters = {@Parameter(in = ParameterIn.PATH, name = "id", schema = @Schema(type = "integer"))},
+                            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = FranchiseRequest.class))),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Franchise updated", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Invalid input or franchise not found", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
+                            })),
             @RouterOperation(path = "/branch", method = RequestMethod.POST,
                     beanClass = BranchHandler.class, beanMethod = "create",
                     operation = @Operation(operationId = "createBranch", summary = "Add a branch to a franchise", tags = {"Branch"},
@@ -50,6 +61,15 @@ public class RouterRest {
                             responses = {
                                     @ApiResponse(responseCode = "200", description = "Branch created", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
                                     @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
+                            })),
+            @RouterOperation(path = "/branch/{id}", method = RequestMethod.PUT,
+                    beanClass = BranchHandler.class, beanMethod = "update",
+                    operation = @Operation(operationId = "updateBranchName", summary = "Update branch name", tags = {"Branch"},
+                            parameters = {@Parameter(in = ParameterIn.PATH, name = "id", schema = @Schema(type = "integer"))},
+                            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = BranchUpdateRequest.class))),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Branch updated", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Invalid input or branch not found", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
                             })),
             @RouterOperation(path = "/product", method = RequestMethod.POST,
                     beanClass = ProductHandler.class, beanMethod = "create",
@@ -76,6 +96,15 @@ public class RouterRest {
                                     @ApiResponse(responseCode = "200", description = "Stock updated", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
                                     @ApiResponse(responseCode = "400", description = "Product not found", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
                             })),
+            @RouterOperation(path = "/product/{id}/name", method = RequestMethod.PUT,
+                    beanClass = ProductHandler.class, beanMethod = "updateName",
+                    operation = @Operation(operationId = "updateProductName", summary = "Update product name", tags = {"Product"},
+                            parameters = {@Parameter(in = ParameterIn.PATH, name = "id", schema = @Schema(type = "integer"))},
+                            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = ProductUpdateNameRequest.class))),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Product name updated", content = @Content(schema = @Schema(implementation = APISuccessResponse.class))),
+                                    @ApiResponse(responseCode = "400", description = "Product not found or name already exists", content = @Content(schema = @Schema(implementation = APIErrorResponse.class)))
+                            })),
             @RouterOperation(path = "/product/{franchiseId}/top", method = RequestMethod.GET,
                     beanClass = ProductHandler.class, beanMethod = "getTopProducts",
                     operation = @Operation(operationId = "getTopProducts", summary = "Get top stock product per branch within a franchise", tags = {"Product"},
@@ -88,10 +117,13 @@ public class RouterRest {
     public RouterFunction<ServerResponse> routerFunction(FranchiseHandler franchiseHandler, BranchHandler branchHandler,
                                                          ProductHandler productHandler) {
         return route(POST("/franchise"), franchiseHandler::create)
+                .andRoute(PUT("/franchise/{id}"), franchiseHandler::update)
                 .andRoute(POST("/branch"), branchHandler::create)
+                .andRoute(PUT("/branch/{id}"), branchHandler::update)
                 .andRoute(POST("/product"), productHandler::create)
                 .andRoute(DELETE("/product/{id}"), productHandler::delete)
                 .andRoute(PUT("/product/{id}/stock"), productHandler::updateStock)
+                .andRoute(PUT("/product/{id}/name"), productHandler::updateName)
                 .andRoute(GET("/product/{franchiseId}/top"), productHandler::getTopProducts);
     }
 }

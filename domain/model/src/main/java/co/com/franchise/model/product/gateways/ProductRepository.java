@@ -12,5 +12,6 @@ public interface ProductRepository {
     Mono<Boolean> delete(Long id);
     Mono<Product> getById(Long id);
     Mono<Boolean> updateStock(Long id, int stock);
+    Mono<Boolean> updateName(Long id, String name);
     Mono<List<ProductView>> getTopProductsByFranchise(Long franchiseId);
 }

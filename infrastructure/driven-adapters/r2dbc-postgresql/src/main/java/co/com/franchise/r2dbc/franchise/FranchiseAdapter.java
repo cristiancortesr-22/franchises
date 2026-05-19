@@ -54,4 +54,19 @@ public class FranchiseAdapter implements FranchiseRepository {
                 .onErrorMap(TransientDataAccessException.class, error ->
                         new InfrastructureException(error, ErrorMessage.FRANCHISE_GET_FAILED));
     }
+
+    @Override
+    public Mono<Franchise> update(Franchise franchise) {
+        return myFranchiseRepository
+                .save(FranchiseMapper.INSTANCE.toFranchiseEntity(franchise))
+                .map(FranchiseMapper.INSTANCE::toFranchise)
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Update franchise request", kv("updateFranchiseRequest", franchise)))
+                .doOnSuccess(franchiseResponse -> log.info("Updated franchise response", kv("updatedFranchiseResponse", franchiseResponse)))
+                .doOnError(throwable -> log.error("Update franchise error", throwable))
+                .onErrorMap(DuplicateKeyException.class, error ->
+                        new BusinessException(ErrorMessage.FRANCHISE_ALREADY_EXISTS_WITH_THIS_NAME))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.FRANCHISE_UPDATE_FAILED));
+    }
 }

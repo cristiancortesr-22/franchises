@@ -16,4 +16,6 @@ public interface FranchiseMapper {
     FranchiseEntity toFranchiseEntity(FranchiseParam franchiseParam);
 
     Franchise toFranchise(FranchiseEntity entity);
+
+    FranchiseEntity toFranchiseEntity(Franchise franchise);
 }

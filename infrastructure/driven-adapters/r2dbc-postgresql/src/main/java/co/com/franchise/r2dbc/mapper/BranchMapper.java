@@ -14,5 +14,6 @@ public interface BranchMapper {
 
     @Mapping(target = "id", ignore = true)
     BranchEntity toBranchEntity(BranchParam branch);
+    BranchEntity toBranchEntity(Branch branch);
     Branch toBranch(BranchEntity branchEntity);
 }

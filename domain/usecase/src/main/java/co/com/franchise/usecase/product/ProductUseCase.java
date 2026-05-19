@@ -47,6 +47,15 @@ public class ProductUseCase {
                         .switchIfEmpty(Mono.error(new BusinessException(ErrorMessage.PRODUCT_UPDATE_STOCK_FAILED))));
     }
 
+    public Mono<Product> updateName(Long id, String name) {
+        return getById(id)
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorMessage.PRODUCT_DOES_NOT_EXIST)))
+                .flatMap(product -> productRepository.updateName(id, name)
+                        .filter(isValid -> isValid)
+                        .flatMap(isValid -> getById(id))
+                        .switchIfEmpty(Mono.error(new BusinessException(ErrorMessage.PRODUCT_UPDATE_NAME_FAILED))));
+    }
+
     public Mono<Product> getById(Long id) {
         return productRepository.getById(id);
     }

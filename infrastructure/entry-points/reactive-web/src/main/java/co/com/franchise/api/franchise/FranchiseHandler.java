@@ -45,4 +45,27 @@ public class FranchiseHandler extends BaseHandler {
                     }
                 });
     }
+
+    public Mono<ServerResponse> update(ServerRequest serverRequest) {
+        Long franchiseId = Long.valueOf(serverRequest.pathVariable("id"));
+
+        return serverRequest.bodyToMono(FranchiseRequest.class)
+                .flatMap(franchiseRequest -> {
+                    Errors errors = new BeanPropertyBindingResult(franchiseRequest, FranchiseRequest.class.getName());
+
+                    Validator validator = new FranchiseValidate();
+                    validator.validate(franchiseRequest, errors);
+
+                    if (errors.getErrorCount() > 0) {
+                        return buildErrorResponse(HttpStatus.BAD_REQUEST, ErrorMessage.INVALID_INPUT);
+                    } else {
+                        return franchiseUseCase.updateName(HandlerMapper.MAPPER.toFranchiseParam(franchiseRequest), franchiseId)
+                                .flatMap(franchise -> buildSuccessResponse(HttpStatus.OK, HandlerMapper.MAPPER.toFranchiseResponse(franchise)))
+                                .onErrorResume(AppException.class, error -> buildErrorResponse(HttpStatus.BAD_REQUEST,
+                                        error.getErrorMessage()))
+                                .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                                        ErrorMessage.INTERNAL_ERROR));
+                    }
+                });
+    }
 }

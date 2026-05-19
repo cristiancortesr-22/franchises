@@ -54,4 +54,18 @@ public class BranchAdapter implements BranchRepository {
                 .onErrorMap(TransientDataAccessException.class, error ->
                         new InfrastructureException(error, ErrorMessage.BRANCH_GET_FAILED));
     }
+
+    @Override
+    public Mono<Branch> update(Branch branch) {
+        return myBranchRepository.save(BranchMapper.INSTANCE.toBranchEntity(branch))
+                .map(BranchMapper.INSTANCE::toBranch)
+                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
+                .doOnSubscribe(subscription -> log.info("Update branch request", kv("updateBranchRequest", branch)))
+                .doOnSuccess(branchResponse -> log.info("Updated branch response", kv("updatedBranchResponse", branchResponse)))
+                .doOnError(throwable -> log.error("Update branch error", throwable))
+                .onErrorMap(DuplicateKeyException.class, error ->
+                        new BusinessException(ErrorMessage.BRANCH_ALREADY_EXISTS_WITH_THIS_NAME))
+                .onErrorMap(TransientDataAccessException.class, error ->
+                        new InfrastructureException(error, ErrorMessage.BRANCH_CREATION_FAILED));
+    }
 }

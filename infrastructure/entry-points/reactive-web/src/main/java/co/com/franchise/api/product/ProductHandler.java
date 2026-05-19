@@ -2,6 +2,7 @@ package co.com.franchise.api.product;
 
 import co.com.franchise.api.mapper.HandlerMapper;
 import co.com.franchise.api.product.dto.ProductRequest;
+import co.com.franchise.api.product.dto.ProductUpdateNameRequest;
 import co.com.franchise.api.product.dto.ProductUpdateStockRequest;
 import co.com.franchise.api.BaseHandler;
 import co.com.franchise.api.validator.ProductValidate;
@@ -90,5 +91,24 @@ public class ProductHandler extends BaseHandler {
                                 buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
                         .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
                                 ErrorMessage.INTERNAL_ERROR))));
+    }
+
+    public Mono<ServerResponse> updateName(ServerRequest serverRequest) {
+        Long productId = Long.valueOf(serverRequest.pathVariable("id"));
+
+        return serverRequest.bodyToMono(ProductUpdateNameRequest.class)
+                .flatMap(productUpdateNameRequest -> {
+                    boolean hasErrors = productUpdateNameRequest == null || productId == null || productId <= 0
+                            || productUpdateNameRequest.getName() == null || productUpdateNameRequest.getName().isBlank();
+                    if (hasErrors) {
+                        return buildErrorResponse(HttpStatus.BAD_REQUEST, ErrorMessage.INVALID_INPUT);
+                    }
+                    return productUseCase.updateName(productId, productUpdateNameRequest.getName())
+                            .flatMap(product -> buildSuccessResponse(HttpStatus.OK, HandlerMapper.MAPPER.toProductResponse(product)))
+                            .onErrorResume(AppException.class, error ->
+                                    buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
+                            .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                                    ErrorMessage.INTERNAL_ERROR));
+                });
     }
 }
