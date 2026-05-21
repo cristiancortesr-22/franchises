@@ -27,12 +27,12 @@ springdoc:
 infrastructure:
   db:
     postgres:
-      host: "${DB_HOST:franchises-dev-db.ckv80a4smvy5.us-east-1.rds.amazonaws.com}"
-      port: "${DB_PORT:5432}"
-      database: "${DB_DATABASE:technical_test}"
-      username: "${DB_USERNAME:postgres}"
-      password: "${DB_PASSWORD:Fr4nch1s3s_D3v_2024!}"
-      driver: "${DB_DRIVER:postgresql}"
+      host: "${DB_HOST}"
+      port: "${DB_PORT}"
+      database: "${DB_DATABASE}"
+      username: "${DB_USERNAME}"
+      password: "${DB_PASSWORD}"
+      driver: "${DB_DRIVER}"
       pool:
         initial-size: "${DB_POOL_INITIAL_SIZE:5}"
         max-size: "${DB_POOL_MAX_SIZE:10}"
