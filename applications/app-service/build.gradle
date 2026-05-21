@@ -1,4 +1,5 @@
 apply plugin: 'org.springframework.boot'
+apply plugin: 'com.google.cloud.tools.jib'
 
 dependencies {
 	implementation project(':r2dbc-postgresql')
@@ -15,4 +16,26 @@ jar {
 
 bootJar {
     archiveFileName = "${project.getParent().getName()}.${archiveExtension.get()}"
+}
+
+jib {
+    from {
+        image = 'eclipse-temurin:17-jre'
+    }
+    to {
+        image = '269825205730.dkr.ecr.us-east-1.amazonaws.com/franchises-dev'
+        tags = ['latest']
+        auth {
+            username = 'AWS'
+            password = project.findProperty('jib.to.auth.password') ?: ''
+        }
+    }
+    container {
+        mainClass = 'co.com.franchise.MainApplication'
+        ports = ['8080']
+        jvmFlags = ['-XX:+UseContainerSupport', '-XX:MaxRAMPercentage=70', '-XX:+UseG1GC']
+        environment = [
+            'TZ': 'America/Bogota'
+        ]
+    }
 }

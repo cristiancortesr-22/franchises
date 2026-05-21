@@ -1,0 +1,10 @@
+aws_region     = "us-east-1"
+project_name   = "franchises"
+environment    = "dev"
+db_username    = "postgres"
+db_password    = "Fr4nch1s3s_D3v_2024!"
+db_name        = "technical_test"
+container_port = 8080
+desired_count  = 1
+task_cpu       = 512
+task_memory    = 1024

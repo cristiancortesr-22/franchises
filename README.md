@@ -70,8 +70,14 @@ La aplicación inicia en `http://localhost:8080/api/v1`
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | POST | `/franchise` | Crear franquicia |
+| PUT | `/franchise/{id}` | Actualizar nombre de franquicia |
 | POST | `/branch` | Agregar sucursal a franquicia |
+| PUT | `/branch/{id}` | Actualizar nombre de sucursal |
 | POST | `/product` | Agregar producto a sucursal |
+| DELETE | `/product/{id}` | Eliminar producto de sucursal |
+| PUT | `/product/{id}/stock` | Modificar stock de producto |
+| PUT | `/product/{id}/name` | Actualizar nombre de producto |
+| GET | `/product/{franchiseId}/top` | Producto con mayor stock por sucursal |
 
 ## Ejemplos de Uso
 
@@ -96,6 +102,14 @@ curl -X POST http://localhost:8080/api/v1/product \
   -d '{"name": "Producto A", "stock": 100, "branchId": 1}'
 ```
 
+## Tests
+
+```bash
+./gradlew test
+```
+
+Los tests unitarios cubren los 3 use cases del dominio con JUnit 5 + Mockito + StepVerifier.
+
 ## Docker
 
 ### Construir imagen
@@ -116,4 +130,69 @@ docker run -p 8080:8080 \
   -e DB_PASSWORD=1234 \
   -e DB_DRIVER=postgresql \
   franchise-api
+```
+
+## Despliegue en AWS con Terraform
+
+La infraestructura se gestiona con Terraform y despliega los siguientes recursos:
+
+- VPC con subnets públicas y privadas
+- RDS PostgreSQL 16 (db.t3.micro)
+- ECR (registro de imágenes Docker)
+- ECS Fargate (contenedor de la aplicación)
+- Application Load Balancer (ALB)
+- Security Groups, NAT Gateway, CloudWatch Logs
+
+### Requisitos
+
+- AWS CLI configurado con credenciales
+- Terraform >= 1.5.0
+
+### Desplegar
+
+```bash
+cd infrastructure/terraform
+cp terraform.tfvars.example terraform.tfvars
+# Editar terraform.tfvars con los valores reales (especialmente db_password)
+
+terraform init
+terraform plan
+terraform apply
+```
+
+### Push de imagen Docker a ECR
+
+```bash
+# Obtener URL del ECR del output de Terraform
+ECR_URL=$(terraform output -raw ecr_repository_url)
+
+# Login en ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_URL
+
+# Build y push
+./gradlew build -x test
+docker build -t franchise-api -f deployment/Dockerfile .
+docker tag franchise-api:latest $ECR_URL:latest
+docker push $ECR_URL:latest
+
+# Forzar nuevo despliegue en ECS
+aws ecs update-service --cluster franchises-dev-cluster --service franchises-dev-service --force-new-deployment
+```
+
+### Acceder a la API
+
+Una vez desplegado, la API estará disponible en:
+```
+http://<ALB_DNS_NAME>/api/v1/swagger-ui.html
+```
+
+El DNS del ALB se obtiene con:
+```bash
+terraform output alb_dns_name
+```
+
+### Destruir infraestructura
+
+```bash
+terraform destroy
 ```

@@ -27,11 +27,11 @@ springdoc:
 infrastructure:
   db:
     postgres:
-      host: "${DB_HOST:localhost}"
+      host: "${DB_HOST:franchises-dev-db.ckv80a4smvy5.us-east-1.rds.amazonaws.com}"
       port: "${DB_PORT:5432}"
       database: "${DB_DATABASE:technical_test}"
       username: "${DB_USERNAME:postgres}"
-      password: "${DB_PASSWORD:1234}"
+      password: "${DB_PASSWORD:Fr4nch1s3s_D3v_2024!}"
       driver: "${DB_DRIVER:postgresql}"
       pool:
         initial-size: "${DB_POOL_INITIAL_SIZE:5}"
