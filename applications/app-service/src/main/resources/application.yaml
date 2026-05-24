@@ -24,6 +24,27 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
 
+resilience4j.circuitbreaker:
+  circuit-breaker-aspect-order: 1
+  configs:
+    default:
+      register-health-indicator: true
+  instances:
+    rateReference:
+      base-config: "default"
+      failure-rate-threshold: "${GRR_FAILURE_RATE_THRESHOLD:50}"
+      slow-call-rate-threshold: "${GRR_SLOW_CALL_RATE_THRESHOLD:50}"
+      slow-call-duration-threshold: "${GRR_SLOW_CALL_DURATION_THRESHOLD:2s}"
+      sliding-window-type: "${GRR_SLIDING_WINDOW_TYPE:COUNT_BASED}"
+      sliding-window-size: "${GRR_SLIDING_WINDOW_SIZE:5}"
+      minimum-number-of-calls: "${GRR_MIN_NUMBER_CALLS:5}"
+      wait-duration-in-open-state: "${GRR_WAIT_DURATION_OPEN_STATE:25s}"
+      max-wait-duration-in-half-open-state: "${GRR_MAX_WAIT_DURATION_HALF_OPEN_STATE:10s}"
+      permitted-number-of-calls-in-half-open-state: "${GRR_PERMITTED_CALLS_HALF_OPEN_STATE:3}"
+      automatic-transition-from-open-to-half-open-enabled: "${GRR_AUTO_TRANS_OPEN_TO_HALF_OPEN_STATE:false}"
+      record-exceptions: "${GRR_RECORD_EXCEPTIONS:}"
+      ignore-exceptions: "${GRR_IGNORE_EXCEPTIONS:}"
+
 infrastructure:
   db:
     postgres:

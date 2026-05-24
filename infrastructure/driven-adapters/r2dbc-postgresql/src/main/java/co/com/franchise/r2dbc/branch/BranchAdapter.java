@@ -7,8 +7,6 @@ import co.com.franchise.model.enums.ErrorMessage;
 import co.com.franchise.model.exceptions.BusinessException;
 import co.com.franchise.model.exceptions.InfrastructureException;
 import co.com.franchise.r2dbc.mapper.BranchMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,13 +24,11 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 public class BranchAdapter implements BranchRepository {
 
     private final MyBranchRepository myBranchRepository;
-    private final CircuitBreaker databaseCircuitBreaker;
 
     @Override
     public Mono<Branch> save(BranchParam branchParam) {
         return myBranchRepository.save(BranchMapper.INSTANCE.toBranchEntity(branchParam))
                 .map(BranchMapper.INSTANCE::toBranch)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Save branch request", kv("saveBranchRequest", branchParam)))
                 .doOnSuccess(branch -> log.info("Saved branch response", kv("savedBranchResponse", branch)))
                 .doOnError(throwable -> log.error("Save branch error", throwable))
@@ -46,7 +42,6 @@ public class BranchAdapter implements BranchRepository {
     public Mono<Branch> get(Long id) {
         return myBranchRepository.findById(id)
                 .map(BranchMapper.INSTANCE::toBranch)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Get branch request",
                         kv("getBranchRequest", Map.of("id", id))))
                 .doOnSuccess(branch -> log.info("Get branch response", kv("getBranchResponse", branch)))
@@ -59,7 +54,6 @@ public class BranchAdapter implements BranchRepository {
     public Mono<Branch> update(Branch branch) {
         return myBranchRepository.save(BranchMapper.INSTANCE.toBranchEntity(branch))
                 .map(BranchMapper.INSTANCE::toBranch)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Update branch request", kv("updateBranchRequest", branch)))
                 .doOnSuccess(branchResponse -> log.info("Updated branch response", kv("updatedBranchResponse", branchResponse)))
                 .doOnError(throwable -> log.error("Update branch error", throwable))

@@ -6,6 +6,7 @@ buildscript {
 		logbackVersion = '1.4.12'
 		logstashLogbackVersion = '7.3'
 		mapstructVersion = '1.5.5.Final'
+		resilience4jVersion = '2.2.0'
 		modelModule = 'model'
 		useCaseModule = 'usecase'
 	}
