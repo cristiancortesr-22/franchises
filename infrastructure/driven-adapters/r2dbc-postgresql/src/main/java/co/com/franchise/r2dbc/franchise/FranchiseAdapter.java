@@ -7,8 +7,6 @@ import co.com.franchise.model.franchise.Franchise;
 import co.com.franchise.model.franchise.FranchiseParam;
 import co.com.franchise.model.franchise.gateways.FranchiseRepository;
 import co.com.franchise.r2dbc.mapper.FranchiseMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,14 +24,12 @@ import static net.logstash.logback.argument.StructuredArguments.kv;
 public class FranchiseAdapter implements FranchiseRepository {
 
     private final MyFranchiseRepository myFranchiseRepository;
-    private final CircuitBreaker databaseCircuitBreaker;
 
     @Override
     public Mono<Franchise> save(FranchiseParam franchiseParam) {
         return myFranchiseRepository
                 .save(FranchiseMapper.INSTANCE.toFranchiseEntity(franchiseParam))
                 .map(FranchiseMapper.INSTANCE::toFranchise)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Save franchise request", kv("saveFranchiseRequest", franchiseParam)))
                 .doOnSuccess(franchise -> log.info("Saved franchise response", kv("savedFranchiseResponse", franchise)))
                 .doOnError(throwable -> log.error("Save franchise error", throwable))
@@ -47,7 +43,6 @@ public class FranchiseAdapter implements FranchiseRepository {
     public Mono<Franchise> findById(Long id) {
         return myFranchiseRepository.findById(id)
                 .map(FranchiseMapper.INSTANCE::toFranchise)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Get by Id franchise request", kv("getFranchiseRequest", Map.of("id", id))))
                 .doOnSuccess(franchise -> log.info("Get by Id franchise response", kv("getFranchiseResponse", franchise)))
                 .doOnError(throwable -> log.error("Get by Id franchise error", throwable))
@@ -60,7 +55,6 @@ public class FranchiseAdapter implements FranchiseRepository {
         return myFranchiseRepository
                 .save(FranchiseMapper.INSTANCE.toFranchiseEntity(franchise))
                 .map(FranchiseMapper.INSTANCE::toFranchise)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Update franchise request", kv("updateFranchiseRequest", franchise)))
                 .doOnSuccess(franchiseResponse -> log.info("Updated franchise response", kv("updatedFranchiseResponse", franchiseResponse)))
                 .doOnError(throwable -> log.error("Update franchise error", throwable))

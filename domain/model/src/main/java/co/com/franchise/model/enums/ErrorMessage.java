@@ -32,7 +32,8 @@ public enum ErrorMessage {
     PRODUCT_ALREADY_EXISTS_WITH_THIS_NAME("PR-10", "Error no puede actualizar el producto, porque ya existe uno con este nombre en la sucursal."),
 
     INVALID_INPUT("VAL-01", "Los datos de entrada no son válidos."),
-    INTERNAL_ERROR("VAL-02", "Error interno, vuelva a intentarlo.");
+    INTERNAL_ERROR("VAL-02", "Error interno, vuelva a intentarlo."),
+    SERVICE_UNAVAILABLE("CB-01", "El servicio no está disponible en este momento, intente más tarde.");
 
     private final String code;
     private final String message;

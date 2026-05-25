@@ -10,7 +10,10 @@ import co.com.franchise.api.validator.UtilValidate;
 import co.com.franchise.model.enums.ErrorMessage;
 import co.com.franchise.model.exceptions.AppException;
 import co.com.franchise.usecase.product.ProductUseCase;
-import lombok.RequiredArgsConstructor;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -24,11 +27,16 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class ProductHandler extends BaseHandler {
 
     private final ProductUseCase productUseCase;
+    private final CircuitBreaker circuitBreaker;
+
+    public ProductHandler(ProductUseCase productUseCase, CircuitBreakerRegistry circuitBreakerRegistry) {
+        this.productUseCase = productUseCase;
+        this.circuitBreaker = circuitBreakerRegistry.circuitBreaker("rateReference");
+    }
 
     public Mono<ServerResponse> create(ServerRequest serverRequest) {
         return serverRequest.bodyToMono(ProductRequest.class)
@@ -43,10 +51,17 @@ public class ProductHandler extends BaseHandler {
                     } else {
                         return productUseCase.create(HandlerMapper.MAPPER.toProductParam(productRequest))
                                 .flatMap(product -> buildSuccessResponse(HttpStatus.OK, HandlerMapper.MAPPER.toProductResponse(product)))
+                                .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                                .onErrorResume(CallNotPermittedException.class, exception -> {
+                                    log.warn("Circuit breaker is OPEN for product create");
+                                    return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.SERVICE_UNAVAILABLE);
+                                })
                                 .onErrorResume(AppException.class, error ->
                                         buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
-                                .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                                        ErrorMessage.INTERNAL_ERROR));
+                                .onErrorResume(throwable -> {
+                                    log.error("Error in product create", throwable);
+                                    return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorMessage.INTERNAL_ERROR);
+                                });
                     }
                 });
     }
@@ -58,10 +73,17 @@ public class ProductHandler extends BaseHandler {
                 .flatMap(error -> buildErrorResponse(HttpStatus.BAD_REQUEST, ErrorMessage.INVALID_INPUT))
                 .switchIfEmpty(Mono.defer(() -> productUseCase.delete(productId)
                         .flatMap(product -> buildSuccessResponse(HttpStatus.OK, Map.of("message", "Product deleted successfully!")))
+                        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                        .onErrorResume(CallNotPermittedException.class, exception -> {
+                            log.warn("Circuit breaker is OPEN for product delete");
+                            return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.SERVICE_UNAVAILABLE);
+                        })
                         .onErrorResume(AppException.class, error ->
                                 buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
-                        .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                                ErrorMessage.INTERNAL_ERROR))));
+                        .onErrorResume(throwable -> {
+                            log.error("Error in product delete", throwable);
+                            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorMessage.INTERNAL_ERROR);
+                        })));
     }
 
     public Mono<ServerResponse> updateStock(ServerRequest serverRequest) {
@@ -73,10 +95,17 @@ public class ProductHandler extends BaseHandler {
                                 .flatMap(error -> buildErrorResponse(HttpStatus.BAD_REQUEST, ErrorMessage.INVALID_INPUT))
                                 .switchIfEmpty(Mono.defer(() -> productUseCase.updateStock(productId, productUpdateStockRequest.getStock())
                                         .flatMap(product -> buildSuccessResponse(HttpStatus.OK, HandlerMapper.MAPPER.toProductResponse(product)))
+                                        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                                        .onErrorResume(CallNotPermittedException.class, exception -> {
+                                            log.warn("Circuit breaker is OPEN for product updateStock");
+                                            return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.SERVICE_UNAVAILABLE);
+                                        })
                                         .onErrorResume(AppException.class, error ->
                                                 buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
-                                        .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                                                ErrorMessage.INTERNAL_ERROR)))));
+                                        .onErrorResume(throwable -> {
+                                            log.error("Error in product updateStock", throwable);
+                                            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorMessage.INTERNAL_ERROR);
+                                        }))));
     }
 
     public Mono<ServerResponse> getTopProducts(ServerRequest serverRequest) {
@@ -87,10 +116,17 @@ public class ProductHandler extends BaseHandler {
                 .switchIfEmpty(Mono.defer(() -> productUseCase.getTopStockProductsByFranchise(franchiseId)
                         .flatMap(productViews -> buildSuccessResponse(HttpStatus.OK,
                                 HandlerMapper.MAPPER.toProductViewResponse(productViews)))
+                        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                        .onErrorResume(CallNotPermittedException.class, exception -> {
+                            log.warn("Circuit breaker is OPEN for getTopProducts, franchiseId: {}", franchiseId);
+                            return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.SERVICE_UNAVAILABLE);
+                        })
                         .onErrorResume(AppException.class, error ->
                                 buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
-                        .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                                ErrorMessage.INTERNAL_ERROR))));
+                        .onErrorResume(throwable -> {
+                            log.error("Error in getTopProducts, franchiseId: {}", franchiseId, throwable);
+                            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorMessage.INTERNAL_ERROR);
+                        })));
     }
 
     public Mono<ServerResponse> updateName(ServerRequest serverRequest) {
@@ -105,10 +141,17 @@ public class ProductHandler extends BaseHandler {
                     }
                     return productUseCase.updateName(productId, productUpdateNameRequest.getName())
                             .flatMap(product -> buildSuccessResponse(HttpStatus.OK, HandlerMapper.MAPPER.toProductResponse(product)))
+                            .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                            .onErrorResume(CallNotPermittedException.class, exception -> {
+                                log.warn("Circuit breaker is OPEN for product updateName");
+                                return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.SERVICE_UNAVAILABLE);
+                            })
                             .onErrorResume(AppException.class, error ->
                                     buildErrorResponse(HttpStatus.BAD_REQUEST, error.getErrorMessage()))
-                            .onErrorResume(throwable -> buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                                    ErrorMessage.INTERNAL_ERROR));
+                            .onErrorResume(throwable -> {
+                                log.error("Error in product updateName", throwable);
+                                return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorMessage.INTERNAL_ERROR);
+                            });
                 });
     }
 }

@@ -8,8 +8,6 @@ import co.com.franchise.model.product.ProductParam;
 import co.com.franchise.model.product.ProductView;
 import co.com.franchise.model.product.gateways.ProductRepository;
 import co.com.franchise.r2dbc.mapper.ProductMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -30,13 +28,11 @@ public class ProductAdapter implements ProductRepository {
     public static final String STATUS_ACTIVE = "ACTIVE";
     public static final String STATUS_DELETE = "DELETE";
     private final MyProductRepository myProductRepository;
-    private final CircuitBreaker databaseCircuitBreaker;
 
     @Override
     public Mono<Product> save(ProductParam productParam) {
         return myProductRepository.save(ProductMapper.INSTANCE.toProductEntity(productParam))
                 .map(ProductMapper.INSTANCE::toProduct)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Save product request", kv("saveProductRequest", productParam)))
                 .doOnSuccess(product -> log.info("Saved product response", kv("savedProductResponse", product)))
                 .onErrorResume(DuplicateKeyException.class, error -> recoverDeletedRecord(productParam))
@@ -48,7 +44,6 @@ public class ProductAdapter implements ProductRepository {
     @Override
     public Mono<Boolean> delete(Long id) {
         return myProductRepository.updateStatus(STATUS_DELETE, id)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Delete product request",
                         kv("deleteProductRequest", Map.of("id", id))))
                 .doOnSuccess(aBoolean -> log.info("Deleted product response",
@@ -62,7 +57,6 @@ public class ProductAdapter implements ProductRepository {
     public Mono<Product> getById(Long id) {
         return myProductRepository.findByIdAndStatus(id, STATUS_ACTIVE)
                 .map(ProductMapper.INSTANCE::toProduct)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Get product request",
                         kv("getProductRequest", Map.of("id", id))))
                 .doOnSuccess(product -> log.info("Get product response", kv("getProductResponse", product)))
@@ -74,7 +68,6 @@ public class ProductAdapter implements ProductRepository {
     @Override
     public Mono<Boolean> updateStock(Long id, int stock) {
         return myProductRepository.updateStock(stock, id)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Update Stock product request",
                         kv("updateStockProductRequest", Map.of("id", id, "stock", stock))))
                 .doOnSuccess(updated -> log.info("Updated Stock product response",
@@ -87,7 +80,6 @@ public class ProductAdapter implements ProductRepository {
     @Override
     public Mono<Boolean> updateName(Long id, String name) {
         return myProductRepository.updateName(name, id)
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Update Name product request",
                         kv("updateNameProductRequest", Map.of("id", id, "name", name))))
                 .doOnSuccess(updated -> log.info("Updated Name product response",
@@ -104,7 +96,6 @@ public class ProductAdapter implements ProductRepository {
         return myProductRepository.findTopStockProductsByFranchise(franchiseId, STATUS_ACTIVE)
                 .map(ProductMapper.INSTANCE::toProductView)
                 .collectList()
-                .transformDeferred(CircuitBreakerOperator.of(databaseCircuitBreaker))
                 .doOnSubscribe(subscription -> log.info("Get top products request",
                         kv("getTopProductsRequest", Map.of("franchiseId", franchiseId))))
                 .doOnSuccess(product -> log.info("Get top products response", kv("getTopProductsResponse", product)))
